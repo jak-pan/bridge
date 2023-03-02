@@ -241,13 +241,20 @@ class BaseInterlayAdapter extends BaseCrossChainAdapter {
       };
     }
 
+    // use "Unlimited" if the xToken.transfer's fourth parameter version supports it
+    const destWeight =
+      this.api.tx.xTokens.transfer.meta.args[3].type.toString() ===
+      "XcmV2WeightLimit"
+        ? "Unlimited"
+        : this.getDestWeight(token, to);
+
     return this.api.tx.xTokens.transfer(
       tokenId,
       amount.toChainData(),
       {
         V1: dst,
       },
-      this.getDestWeight(token, to)?.toString()
+      destWeight
     );
   }
 }
