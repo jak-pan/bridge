@@ -35,7 +35,8 @@ describe.skip("Bridge sdk usage", () => {
   });
 
   function printTx(fromChain: any, toChain: any, token: any) {
-    const testAddress = "23M5ttkmR6Kco7bReRDve6bQUSAcwqebatp3fWGJYb4hDSDJ";
+    // Alice test address
+    const testAddress = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 
     const tx = availableAdapters[fromChain].createTx({
       to: toChain,
@@ -162,12 +163,12 @@ describe.skip("Bridge sdk usage", () => {
 
   test("4. all transfer tx should be constructable", async () => {
     // kintsugi
-    printBidirectionalTxs("kintsugi", "kusama", "KSM");
+    // printBidirectionalTxs("kintsugi", "kusama", "KSM");
     // printBidirectionalTxs("kintsugi", "statemine", "USDT");
 
     // interlay
-    printBidirectionalTxs("interlay", "polkadot", "DOT");
-    // printBidirectionalTxs("interlay", "statemint", "USDT");
+    // printBidirectionalTxs("interlay", "polkadot", "DOT");
+    printBidirectionalTxs("interlay", "statemint", "USDT");
     // no adapter available for tx originating from moonbeam (yet?)
   });
 });
