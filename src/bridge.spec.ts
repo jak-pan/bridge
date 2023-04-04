@@ -41,7 +41,7 @@ describe.skip("Bridge sdk usage", () => {
     const tx = availableAdapters[fromChain].createTx({
       to: toChain,
       token,
-      amount: FN.fromInner("10000000000", 10),
+      amount: FN.fromInner("100000", 10),
       address: testAddress,
       signer: testAddress,
     });
