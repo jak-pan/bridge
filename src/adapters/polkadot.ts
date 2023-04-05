@@ -160,7 +160,7 @@ class BasePolkadotAdapter extends BaseCrossChainAdapter {
         const fee = FN.fromInner(
           // This change needs to be reverted once we can handle weights v2
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          Math.pow(10, tokenMeta!.decimals),
+          0.05 * Math.pow(10, tokenMeta!.decimals),
           tokenMeta?.decimals
         );
 
