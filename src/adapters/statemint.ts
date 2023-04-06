@@ -17,12 +17,14 @@ import {
   CrossChainRouterConfigs,
   CrossChainTransferParams,
 } from "../types";
+import { supportsV0V1Multilocation } from "../utils/polkadotXcm-multilocation-check";
 
 export const statemintRoutersConfig: Omit<CrossChainRouterConfigs, "from">[] = [
   {
     to: "interlay",
     token: "USDT",
-    xcm: { fee: { token: "USDT", amount: "640" }, weightLimit: "Unlimited" },
+    // fees from tests on chopsticks: 9_510 atomic units
+    xcm: { fee: { token: "USDT", amount: "15000" }, weightLimit: "Unlimited" },
   },
 ];
 
@@ -265,32 +267,57 @@ class BaseStatemintAdapter extends BaseCrossChainAdapter {
       throw new CurrencyNotFound(token);
     }
 
-    const dst = {
-      parents: 1,
-      interior: { X1: { Parachain: toChain.paraChainId } },
-    };
-    const acc = {
-      parents: 0,
-      interior: { X1: { AccountId32: { id: accountId } } },
-    };
-    const ass = [
-      {
-        fun: { Fungible: amount.toChainData() },
-        id: {
-          Concrete: {
-            parents: 0,
-            interior: {
-              X2: [{ PalletInstance: 50 }, { GeneralIndex: assetId }],
-            },
+    const [dst, acc, ass] = supportsV0V1Multilocation(this.api)
+      ? [
+          { V0: { X2: ["Parent", { Parachain: toChain.paraChainId }] } },
+          { V0: { X1: { AccountId32: { id: accountId, network: "Any" } } } },
+          {
+            V0: [
+              {
+                ConcreteFungible: {
+                  id: {
+                    X2: [{ PalletInstance: 50 }, { GeneralIndex: assetId }],
+                  },
+                  amount: amount.toChainData(),
+                },
+              },
+            ],
           },
-        },
-      },
-    ];
+        ]
+      : [
+          {
+            V3: {
+              parents: 1,
+              interior: { X1: { Parachain: toChain.paraChainId } },
+            },
+          } as any,
+          {
+            V3: {
+              parents: 0,
+              interior: { X1: { AccountId32: { id: accountId } } },
+            },
+          } as any,
+          {
+            V3: [
+              {
+                fun: { Fungible: amount.toChainData() },
+                id: {
+                  Concrete: {
+                    parents: 0,
+                    interior: {
+                      X2: [{ PalletInstance: 50 }, { GeneralIndex: assetId }],
+                    },
+                  },
+                },
+              },
+            ],
+          } as any,
+        ];
+
     return this.api?.tx.polkadotXcm.limitedReserveTransferAssets(
-      // TODO: remove "as any" when @acala-network/types has a version that supports V2/V3
-      { V3: dst } as any,
-      { V3: acc } as any,
-      { V3: ass } as any,
+      dst,
+      acc,
+      ass,
       0,
       this.getDestWeight(token, to)?.toString()
     );

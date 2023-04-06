@@ -6,7 +6,7 @@ import { BaseCrossChainAdapter } from "./base-chain-adapter";
 import { ChainName } from "./configs";
 import { Bridge } from "./index";
 import { KintsugiAdapter, InterlayAdapter } from "./adapters/interlay";
-// import { StatemineAdapter, StatemintAdapter } from "./adapters/statemint";
+import { StatemineAdapter, StatemintAdapter } from "./adapters/statemint";
 import { FN } from "./types";
 import { KusamaAdapter, PolkadotAdapter } from "./adapters/polkadot";
 import { HydraAdapter } from "./adapters/hydradx";
@@ -27,8 +27,8 @@ describe.skip("Bridge sdk usage", () => {
     interlay: new InterlayAdapter(),
     kintsugi: new KintsugiAdapter(),
     // moonriver: new MoonriverAdapter(),
-    // statemine: new StatemineAdapter(),
-    // statemint: new StatemintAdapter(),
+    statemine: new StatemineAdapter(),
+    statemint: new StatemintAdapter(),
     hydra: new HydraAdapter(),
   };
 
@@ -170,7 +170,7 @@ describe.skip("Bridge sdk usage", () => {
 
     // interlay
     // printBidirectionalTxs("interlay", "polkadot", "DOT");
-    // printBidirectionalTxs("interlay", "statemint", "USDT");
-    printBidirectionalTxs("interlay", "hydra", "IBTC");
+    printBidirectionalTxs("interlay", "statemint", "USDT");
+    // printBidirectionalTxs("interlay", "hydra", "IBTC");
   });
 });
