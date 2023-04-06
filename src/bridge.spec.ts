@@ -9,6 +9,7 @@ import { KintsugiAdapter, InterlayAdapter } from "./adapters/interlay";
 // import { StatemineAdapter, StatemintAdapter } from "./adapters/statemint";
 import { FN } from "./types";
 import { KusamaAdapter, PolkadotAdapter } from "./adapters/polkadot";
+import { HydraAdapter } from "./adapters/hydradx";
 // import { MoonriverAdapter } from "./adapters/moonbeam";
 describe.skip("Bridge sdk usage", () => {
   jest.setTimeout(30000);
@@ -28,6 +29,7 @@ describe.skip("Bridge sdk usage", () => {
     // moonriver: new MoonriverAdapter(),
     // statemine: new StatemineAdapter(),
     // statemint: new StatemintAdapter(),
+    hydra: new HydraAdapter(),
   };
 
   const bridge = new Bridge({
@@ -168,7 +170,7 @@ describe.skip("Bridge sdk usage", () => {
 
     // interlay
     // printBidirectionalTxs("interlay", "polkadot", "DOT");
-    printBidirectionalTxs("interlay", "statemint", "USDT");
-    // no adapter available for tx originating from moonbeam (yet?)
+    // printBidirectionalTxs("interlay", "statemint", "USDT");
+    printBidirectionalTxs("interlay", "hydra", "IBTC");
   });
 });
