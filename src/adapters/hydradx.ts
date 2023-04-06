@@ -12,58 +12,40 @@ import { ChainName, chains } from "../configs";
 import { ApiNotFound, CurrencyNotFound } from "../errors";
 import {
   BalanceData,
-  BasicToken,
+  ExpandToken,
   CrossChainRouterConfigs,
   CrossChainTransferParams,
 } from "../types";
 
 const DEST_WEIGHT = "5000000000";
 
-export const basiliskRoutersConfig: Omit<CrossChainRouterConfigs, "from">[] = [
+export const hydraRoutersConfig: Omit<CrossChainRouterConfigs, "from">[] = [
   {
-    to: "kusama",
-    token: "KSM",
+    to: "interlay",
+    token: "IBTC",
     xcm: {
-      fee: { token: "KSM", amount: "11523248" },
-      weightLimit: "800000000",
-    },
-  },
-  {
-    to: "karura",
-    token: "BSX",
-    xcm: {
-      fee: { token: "BSX", amount: "93240000000" },
-      weightLimit: DEST_WEIGHT,
-    },
-  },
-  {
-    to: "karura",
-    token: "KUSD",
-    xcm: {
-      fee: { token: "KUSD", amount: "5060238106" },
-      weightLimit: DEST_WEIGHT,
-    },
-  },
-  {
-    to: "karura",
-    token: "KSM",
-    xcm: {
-      fee: { token: "KSM", amount: "90741527" },
+      // recent transfer cost: 62 - add 10x margin to fee estimate
+      fee: { token: "IBTC", amount: "620" },
       weightLimit: DEST_WEIGHT,
     },
   },
 ];
 
-export const basiliskTokensConfig: Record<string, BasicToken> = {
-  BSX: { name: "BSX", symbol: "BSX", decimals: 12, ed: "1000000000000" },
-  KUSD: { name: "KUSD", symbol: "KUSD", decimals: 12, ed: "10000000000" },
-  KSM: { name: "KSM", symbol: "KSM", decimals: 12, ed: "100000000" },
-};
-
-const SUPPORTED_TOKENS: Record<string, number> = {
-  BSX: 0,
-  KUSD: 2,
-  KSM: 1,
+export const hydraTokensConfig: Record<string, ExpandToken> = {
+  HDX: {
+    name: "HDX",
+    symbol: "HDX",
+    decimals: 12,
+    ed: "1000000000000",
+    toChainData: () => 0,
+  },
+  IBTC: {
+    name: "IBTC",
+    symbol: "IBTC",
+    decimals: 8,
+    ed: "36",
+    toChainData: () => 11,
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -93,12 +75,12 @@ class HydradxBalanceAdapter extends BalanceAdapter {
   }
 
   public subscribeBalance(
-    token: string,
+    tokenName: string,
     address: string
   ): Observable<BalanceData> {
     const storage = this.storages.balances(address);
 
-    if (token === this.nativeToken) {
+    if (tokenName === this.nativeToken) {
       return storage.observable.pipe(
         map((data) => ({
           free: FN.fromInner(data.freeBalance.toString(), this.decimals),
@@ -115,17 +97,13 @@ class HydradxBalanceAdapter extends BalanceAdapter {
       );
     }
 
-    const tokenId = SUPPORTED_TOKENS[token];
+    const token = this.getToken<ExpandToken>(tokenName);
 
-    if (tokenId === undefined) {
-      throw new CurrencyNotFound(token);
-    }
-
-    return this.storages.assets(tokenId, address).observable.pipe(
+    return this.storages.assets(token.toChainData(), address).observable.pipe(
       map((balance) => {
         const amount = FN.fromInner(
           balance.free?.toString() || "0",
-          this.getToken(token).decimals
+          token.decimals
         );
 
         return {
@@ -142,7 +120,7 @@ class HydradxBalanceAdapter extends BalanceAdapter {
 class BaseHydradxAdapter extends BaseCrossChainAdapter {
   private balanceAdapter?: HydradxBalanceAdapter;
 
-  public override async setApi(api: AnyApi) {
+  public async setApi(api: AnyApi) {
     this.api = api;
 
     await api.isReady;
@@ -150,7 +128,7 @@ class BaseHydradxAdapter extends BaseCrossChainAdapter {
     this.balanceAdapter = new HydradxBalanceAdapter({
       chain: this.chain.id as ChainName,
       api,
-      tokens: basiliskTokensConfig,
+      tokens: this.tokens,
     });
   }
 
@@ -213,11 +191,11 @@ class BaseHydradxAdapter extends BaseCrossChainAdapter {
       throw new ApiNotFound(this.chain.id);
     }
 
-    const { address, amount, to, token } = params;
+    const { address, amount, to, token: tokenName } = params;
 
-    const tokenId = SUPPORTED_TOKENS[token];
+    const token = this.getToken<ExpandToken>(tokenName);
 
-    if (tokenId === undefined) {
+    if (!token) {
       throw new CurrencyNotFound(token);
     }
 
@@ -236,17 +214,25 @@ class BaseHydradxAdapter extends BaseCrossChainAdapter {
             },
     };
 
+    // use "Unlimited" if supported
+    const destWeight =
+      this.api?.tx.xTokens.transfer.meta.args[3].type.toString() ===
+      "XcmV2WeightLimit"
+        ? "Unlimited"
+        : this.getDestWeight(tokenName, to);
+
     return this.api?.tx.xTokens.transfer(
-      tokenId,
+      token.toChainData(),
       amount.toChainData(),
       { V1: dst },
-      this.getDestWeight(token, to)?.toString()
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      destWeight!
     );
   }
 }
 
-export class BasiliskAdapter extends BaseHydradxAdapter {
+export class HydraAdapter extends BaseHydradxAdapter {
   constructor() {
-    super(chains.basilisk, basiliskRoutersConfig, basiliskTokensConfig);
+    super(chains.hydra, hydraRoutersConfig, hydraTokensConfig);
   }
 }

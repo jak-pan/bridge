@@ -7,6 +7,7 @@ import { Bridge } from "..";
 import { PolkadotAdapter } from "./polkadot";
 import { InterlayAdapter } from "./interlay";
 import { StatemintAdapter } from "./statemint";
+import { HydraAdapter } from "./hydradx";
 
 describe.skip("interlay-adapter should work", () => {
   jest.setTimeout(30000);
@@ -20,20 +21,25 @@ describe.skip("interlay-adapter should work", () => {
   }
 
   test("connect interlay to do xcm", async () => {
-    const fromChains = ["interlay", "polkadot", "statemint"] as ChainName[];
+    const fromChains = ["interlay", "polkadot", "statemint", "hydra"] as ChainName[];
 
     await connect(fromChains);
 
     const interlay = new InterlayAdapter();
     const polkadot = new PolkadotAdapter();
     const statemint = new StatemintAdapter();
+    const hydra = new HydraAdapter();
 
-    await interlay.setApi(provider.getApi(fromChains[0]));
-    await polkadot.setApi(provider.getApi(fromChains[1]));
-    await statemint.setApi(provider.getApi(fromChains[2]));
+
+    await Promise.all([
+      interlay.setApi(provider.getApi(fromChains[0])),
+      polkadot.setApi(provider.getApi(fromChains[1])),
+      statemint.setApi(provider.getApi(fromChains[2])),
+      hydra.setApi(provider.getApi(fromChains[3]))
+    ]);
 
     const bridge = new Bridge({
-      adapters: [interlay, polkadot, statemint],
+      adapters: [interlay, polkadot, statemint, hydra],
     });
 
     expect(
@@ -47,6 +53,13 @@ describe.skip("interlay-adapter should work", () => {
       bridge.router.getDestinationChains({
         from: chains.interlay,
         token: "USDT",
+      }).length
+    ).toEqual(1);
+
+    expect(
+      bridge.router.getDestinationChains({
+        from: chains.interlay,
+        token: "IBTC",
       }).length
     ).toEqual(1);
 
